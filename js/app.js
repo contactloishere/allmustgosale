@@ -114,8 +114,7 @@ function buildCard(product) {
   btn.type = 'button';
   btn.textContent = 'Add to cart';
   btn.addEventListener('click', () => {
-    // Cart logic lands in Stage 2 — for now, just a visual confirmation
-    // so the storefront is testable end-to-end on its own.
+    addToCart(product.id);
     btn.textContent = 'Added';
     btn.classList.add('added');
     setTimeout(() => {
