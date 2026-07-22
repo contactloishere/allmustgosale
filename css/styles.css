@@ -9,7 +9,8 @@
   --muted: #8B8778;
   --card-bg: #FFFFFF;
 
-  --font-display: 'Archivo Black', sans-serif;
+  --font-display: 'Playfair Display', serif;
+  --font-tag: 'Archivo Black', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 
@@ -143,6 +144,26 @@ body {
   margin: 0;
   flex: 1;
 }
+.product-desc__list {
+  margin: 0;
+  padding-left: 18px;
+}
+.product-desc__list li {
+  margin-bottom: 3px;
+}
+.see-more-toggle {
+  background: none;
+  border: none;
+  padding: 4px 0 0;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--moss);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.see-more-toggle:focus-visible { outline: 2px solid var(--moss); }
 
 .product-footer {
   display: flex;
@@ -434,4 +455,27 @@ body {
   padding: 10px 12px;
   line-height: 1.5;
   margin: 2px 0 0;
+}
+
+.qr-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: var(--card-bg);
+}
+.qr-display img {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  border-radius: 2px;
+}
+.qr-caption {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
 }

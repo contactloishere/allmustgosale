@@ -1,15 +1,20 @@
-// PLACEHOLDER DATA — shaped exactly like the Supabase "products" table will be.
-// Once Supabase is wired up in a later stage, this file gets replaced by a
-// live fetch — nothing else in the app needs to change.
+// FALLBACK DATA — used only if the real Supabase products table is empty
+// or unreachable, so the storefront never shows completely blank.
+// Once you add real products in Supabase's Table Editor, those take over
+// automatically — see js/app.js for the fetch logic.
+//
+// NOTE on `description`: separate each bullet point with a line break.
+// The storefront splits on line breaks to render them as a bulleted list,
+// showing the first 2 by default with a "See more" toggle for the rest.
 //
 // Fields: id, name, description, price (PHP), weight (kg, hidden from customer),
 // images (array of up to 5 Cloudinary URLs — fewer than 5 is fine)
 
-const PRODUCTS = [
+let PRODUCTS = [
   {
     id: 1,
     name: "Ceramic Pour-Over Set",
-    description: "Matte stoneware dripper + carafe. Slight glaze variation on each piece — normal, not a defect.",
+    description: "Matte stoneware dripper + carafe\nSlight glaze variation on each piece — normal, not a defect\nHolds up to 4 cups\nHand wash recommended",
     price: 890,
     weight: 1.2,
     images: [
@@ -32,7 +37,7 @@ const PRODUCTS = [
   {
     id: 3,
     name: "Brass Desk Organizer",
-    description: "Solid brass, raw unlacquered finish that will patina with handling.",
+    description: "Solid brass, raw unlacquered finish\nWill patina naturally with handling\n3 compartments for pens, cards, and small items\nWeighted base — won't tip over easily",
     price: 1250,
     weight: 0.9,
     images: [

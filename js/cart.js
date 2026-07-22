@@ -97,6 +97,19 @@ function buildCartDrawer() {
       <p class="manual-quote-note" id="manual-quote-note" style="display:none;">Your order's a bit heavier than our standard rates cover — I'll check the exact shipping cost myself and send it your way over Threads DM before anything ships.</p>
 
       <label>
+        Preferred mode of payment
+        <select name="payment_method" id="payment-method-select" required>
+          <option value="" disabled selected>Select a payment method</option>
+          ${PAYMENT_METHODS.map(m => `<option value="${m.id}">${m.label}</option>`).join('')}
+        </select>
+      </label>
+
+      <div class="qr-display" id="qr-display" style="display:none;">
+        <img id="qr-image" src="" alt="Payment QR code">
+        <p class="qr-caption" id="qr-caption"></p>
+      </div>
+
+      <label>
         Upload proof of payment
         <input type="file" name="proof" accept="image/*" required>
       </label>
@@ -114,28 +127,70 @@ function buildCartDrawer() {
 
   document.getElementById('region-select').addEventListener('change', updateShippingAndTotal);
 
-  document.getElementById('checkout-form').addEventListener('submit', e => {
+  document.getElementById('payment-method-select').addEventListener('change', e => {
+    const method = PAYMENT_METHODS.find(m => m.id === e.target.value);
+    const display = document.getElementById('qr-display');
+    if (!method) {
+      display.style.display = 'none';
+      return;
+    }
+    document.getElementById('qr-image').src = method.qr;
+    document.getElementById('qr-caption').textContent = `Scan to pay via ${method.label}`;
+    display.style.display = 'block';
+  });
+
+  document.getElementById('checkout-form').addEventListener('submit', async e => {
     e.preventDefault();
     if (cartCount() === 0) {
       alert('Your cart is empty — add something first.');
       return;
     }
+
+    const submitBtn = e.target.querySelector('.submit-order');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
     const data = new FormData(e.target);
     const region = SHIPPING_RATES.find(r => r.id === data.get('region'));
     const shipping = getShippingRate(data.get('region'), cartTotalWeight());
+    const subtotal = cartSubtotal();
 
-    // Stage 3/4 will replace this with: upload proof to Cloudinary,
-    // write the order to Supabase, and ping the Telegram bot.
-    alert(
-      `Order preview (not yet submitted anywhere — Stage 3 wires this up):\n\n` +
-      `Name: ${data.get('name')}\n` +
-      `Address: ${data.get('address')}\n` +
-      `Contact: ${data.get('contact')}\n` +
-      `Region: ${region ? region.label : '(none)'}\n` +
-      `Items subtotal: ₱${cartSubtotal().toLocaleString('en-PH')}\n` +
-      `Shipping: ${shipping === null ? 'To be confirmed by Lois via Threads' : '₱' + shipping}\n` +
-      `Total: ${shipping === null ? '₱' + cartSubtotal().toLocaleString('en-PH') + ' + shipping' : '₱' + (cartSubtotal() + shipping).toLocaleString('en-PH')}`
-    );
+    const items = Object.entries(cart).map(([id, qty]) => {
+      const p = getProduct(Number(id));
+      return { product_id: p.id, name: p.name, qty, price: p.price };
+    });
+
+    // Note: proof of payment file isn't uploaded anywhere yet — that's
+    // Stage 4 (Cloudinary). proof_url stays null until then.
+    const { error } = await supabaseClient.from('orders').insert({
+      customer_name: data.get('name'),
+      address: data.get('address'),
+      contact_number: data.get('contact'),
+      region_id: data.get('region'),
+      region_label: region ? region.label : null,
+      payment_method: data.get('payment_method'),
+      items: items,
+      subtotal: subtotal,
+      shipping_fee: shipping, // null if over 5kg — matches the "to be confirmed" case
+      total: shipping === null ? null : subtotal + shipping,
+      proof_url: null,
+      status: 'new'
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit order';
+
+    if (error) {
+      console.error('Order submission failed:', error);
+      alert('Something went wrong submitting your order — please try again, or message Lois directly on Threads.');
+      return;
+    }
+
+    alert('Order submitted! Lois will confirm your payment and reach out via Threads DM with your tracking number.');
+    for (const id in cart) delete cart[id];
+    updateCartBadge();
+    e.target.reset();
+    closeCart();
   });
 }
 

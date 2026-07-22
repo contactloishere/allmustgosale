@@ -85,6 +85,52 @@ function buildCarousel(product) {
   return wrap;
 }
 
+const DESC_PREVIEW_COUNT = 2;
+
+function buildDescription(rawDescription) {
+  const bullets = (rawDescription || '')
+    .split('\n')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'product-desc';
+
+  if (bullets.length === 0) return wrap;
+
+  const list = document.createElement('ul');
+  list.className = 'product-desc__list';
+
+  bullets.forEach((bullet, i) => {
+    const li = document.createElement('li');
+    li.textContent = bullet;
+    if (i >= DESC_PREVIEW_COUNT) li.hidden = true;
+    list.appendChild(li);
+  });
+
+  wrap.appendChild(list);
+
+  if (bullets.length > DESC_PREVIEW_COUNT) {
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'see-more-toggle';
+    toggle.textContent = 'See more';
+
+    let expanded = false;
+    toggle.addEventListener('click', () => {
+      expanded = !expanded;
+      [...list.children].forEach((li, i) => {
+        if (i >= DESC_PREVIEW_COUNT) li.hidden = !expanded;
+      });
+      toggle.textContent = expanded ? 'See less' : 'See more';
+    });
+
+    wrap.appendChild(toggle);
+  }
+
+  return wrap;
+}
+
 function buildCard(product) {
   const card = document.createElement('article');
   card.className = 'product-card';
@@ -98,9 +144,7 @@ function buildCard(product) {
   name.className = 'product-name';
   name.textContent = product.name;
 
-  const desc = document.createElement('p');
-  desc.className = 'product-desc';
-  desc.textContent = product.description;
+  const desc = buildDescription(product.description);
 
   const footer = document.createElement('div');
   footer.className = 'product-footer';
@@ -139,4 +183,36 @@ function renderStorefront() {
   PRODUCTS.forEach(product => root.appendChild(buildCard(product)));
 }
 
-renderStorefront();
+async function loadProductsAndRender() {
+  const root = document.getElementById('storefront');
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('products')
+      .select('*')
+      .eq('is_available', true)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      PRODUCTS = data.map(row => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        price: row.price,
+        weight: row.weight,
+        images: [row.image_url_1, row.image_url_2, row.image_url_3, row.image_url_4, row.image_url_5]
+          .filter(Boolean)
+      }));
+    }
+    // If the table is empty, PRODUCTS stays as the fallback placeholder data.
+  } catch (err) {
+    console.warn('Could not load products from Supabase — showing placeholder data instead.', err);
+    // PRODUCTS stays as the fallback placeholder data.
+  }
+
+  renderStorefront();
+}
+
+loadProductsAndRender();
