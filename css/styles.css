@@ -424,3 +424,14 @@ body {
 }
 .submit-order:hover { opacity: 0.9; }
 .submit-order:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.manual-quote-note {
+  font-size: 0.8rem;
+  color: var(--moss);
+  background: #F0F1EA;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  line-height: 1.5;
+  margin: 2px 0 0;
+}

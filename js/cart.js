@@ -94,6 +94,7 @@ function buildCartDrawer() {
         <div class="totals-row"><span>Shipping</span><span id="shipping-amount">Select a region</span></div>
         <div class="totals-row totals-row--grand"><span>Total</span><span id="grand-total">₱0</span></div>
       </div>
+      <p class="manual-quote-note" id="manual-quote-note" style="display:none;">Your order's a bit heavier than our standard rates cover — I'll check the exact shipping cost myself and send it your way over Threads DM before anything ships.</p>
 
       <label>
         Upload proof of payment
@@ -132,8 +133,8 @@ function buildCartDrawer() {
       `Contact: ${data.get('contact')}\n` +
       `Region: ${region ? region.label : '(none)'}\n` +
       `Items subtotal: ₱${cartSubtotal().toLocaleString('en-PH')}\n` +
-      `Shipping: ₱${shipping}\n` +
-      `Total: ₱${(cartSubtotal() + (shipping || 0)).toLocaleString('en-PH')}`
+      `Shipping: ${shipping === null ? 'To be confirmed by Lois via Threads' : '₱' + shipping}\n` +
+      `Total: ${shipping === null ? '₱' + cartSubtotal().toLocaleString('en-PH') + ' + shipping' : '₱' + (cartSubtotal() + shipping).toLocaleString('en-PH')}`
     );
   });
 }
@@ -176,11 +177,13 @@ function renderCartItems() {
 function updateShippingAndTotal() {
   const regionId = document.getElementById('region-select').value;
   const subtotal = cartSubtotal();
+  const noteEl = document.getElementById('manual-quote-note');
   document.getElementById('subtotal-amount').textContent = `₱${subtotal.toLocaleString('en-PH')}`;
 
   if (!regionId) {
     document.getElementById('shipping-amount').textContent = 'Select a region';
     document.getElementById('grand-total').textContent = `₱${subtotal.toLocaleString('en-PH')}`;
+    noteEl.style.display = 'none';
     return;
   }
 
@@ -188,13 +191,15 @@ function updateShippingAndTotal() {
   const rate = getShippingRate(regionId, totalWeight);
 
   if (rate === null) {
-    document.getElementById('shipping-amount').textContent = 'Over 5kg — will quote manually';
-    document.getElementById('grand-total').textContent = `₱${subtotal.toLocaleString('en-PH')}+`;
+    document.getElementById('shipping-amount').textContent = 'To be confirmed';
+    document.getElementById('grand-total').textContent = `₱${subtotal.toLocaleString('en-PH')} + shipping`;
+    noteEl.style.display = 'block';
     return;
   }
 
   document.getElementById('shipping-amount').textContent = `₱${rate.toLocaleString('en-PH')}`;
   document.getElementById('grand-total').textContent = `₱${(subtotal + rate).toLocaleString('en-PH')}`;
+  noteEl.style.display = 'none';
 }
 
 function openCart() {
