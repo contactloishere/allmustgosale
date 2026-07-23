@@ -68,7 +68,17 @@ https://allmustgosale.vercel.app
 ## How to preview locally
 Open `index.html` in a browser — no build step, no dependencies.
 
-## Round 6 updates
+## Round 7 updates
+- [x] Error alert copy softened ("must have been a glitch or something :)")
+- [x] Success alert copy now says Lois will reach out via their chosen platform,
+      not specifically Threads
+- [x] Preferred-platform note copy simplified (no em dash, no emoji)
+- [x] **Likely fix for the Telegram ping**: added `package.json` with
+      `"type": "module"` at the project root. Without this, Vercel may have
+      been treating `api/notify-order.js`'s modern `export default` syntax as
+      invalid, causing the function to fail silently every time (order still
+      saves either way since that part is separate) — this should resolve it
+
 - [x] Subtitle copy updated (minimalism/simple-living framing) — two paragraphs now
 - [x] Low-stock urgency threshold widened from ≤3 to ≤5 units
 - [x] New checkout fields: "Preferred platform for updates" (Threads/iMessage/

@@ -96,7 +96,7 @@ function buildCartDrawer() {
         Your Threads/Instagram handle or iMessage/WhatsApp/Viber number *
         <input type="text" name="contact_handle" required placeholder="@yourhandle or number">
       </label>
-      <p class="checkout-note">This is where I'll be reaching you with shipping updates and your tracking number — please keep your notifications on so nothing slips past you 💌</p>
+      <p class="checkout-note">This is where I will be reaching out to you with shipping updates and your tracking number. Please keep your account open for messages.</p>
       <label>
         Shipping region *
         <select name="region" id="region-select" required>
@@ -220,7 +220,7 @@ function buildCartDrawer() {
 
     if (error) {
       console.error('Order submission failed:', error);
-      alert('Something went wrong submitting your order — please try again, or message Lois directly on Threads.');
+      alert('Something went wrong submitting your order. Kindly try submitting again, it must have been a glitch or something. :)');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit order';
       return;
@@ -263,7 +263,7 @@ function buildCartDrawer() {
     submitBtn.disabled = false;
     submitBtn.textContent = 'Submit order';
 
-    alert('Order submitted! Lois will confirm your payment and reach out via Threads DM with your tracking number.');
+    alert('Order submitted! Lois will confirm your payment and reach out to you in your platform of choice. Please keep your DMs open for messages.');
     for (const id in cart) delete cart[id];
     updateCartBadge();
     e.target.reset();
