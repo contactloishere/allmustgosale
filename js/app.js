@@ -134,8 +134,22 @@ function buildDescription(rawDescription) {
 function buildCard(product) {
   const card = document.createElement('article');
   card.className = 'product-card';
+  card.dataset.category = product.category || 'uncategorized';
 
-  card.appendChild(buildCarousel(product));
+  const isTracked = product.stockQuantity !== null && product.stockQuantity !== undefined;
+  const isSoldOut = isTracked && product.stockQuantity <= 0;
+  const isLowStock = isTracked && !isSoldOut && product.stockQuantity <= 3;
+  card.dataset.soldOut = isSoldOut ? 'true' : 'false';
+  if (isSoldOut) card.classList.add('is-sold-out');
+
+  const carousel = buildCarousel(product);
+  if (isSoldOut) {
+    const badge = document.createElement('div');
+    badge.className = 'sold-out-badge';
+    badge.textContent = 'SOLD OUT';
+    carousel.appendChild(badge);
+  }
+  card.appendChild(carousel);
 
   const body = document.createElement('div');
   body.className = 'product-body';
@@ -145,6 +159,17 @@ function buildCard(product) {
   name.textContent = product.name;
 
   const desc = buildDescription(product.description);
+
+  // Sold count / low-stock urgency line (only shown when there's something to say)
+  let metaLine = null;
+  if (isLowStock || product.unitsSold > 0) {
+    metaLine = document.createElement('p');
+    metaLine.className = 'product-meta';
+    const parts = [];
+    if (isLowStock) parts.push(`Only ${product.stockQuantity} left`);
+    if (product.unitsSold > 0) parts.push(`${product.unitsSold} sold`);
+    metaLine.textContent = parts.join(' · ');
+  }
 
   const footer = document.createElement('div');
   footer.className = 'product-footer';
@@ -156,31 +181,86 @@ function buildCard(product) {
   const btn = document.createElement('button');
   btn.className = 'add-to-cart';
   btn.type = 'button';
-  btn.textContent = 'Add to cart';
-  btn.addEventListener('click', () => {
-    addToCart(product.id);
-    btn.textContent = 'Added';
-    btn.classList.add('added');
-    setTimeout(() => {
-      btn.textContent = 'Add to cart';
-      btn.classList.remove('added');
-    }, 1200);
-  });
+
+  if (isSoldOut) {
+    btn.textContent = 'Sold out';
+    btn.disabled = true;
+  } else {
+    btn.textContent = 'Add to cart';
+    btn.addEventListener('click', () => {
+      addToCart(product.id);
+      btn.textContent = 'Added';
+      btn.classList.add('added');
+      setTimeout(() => {
+        btn.textContent = 'Add to cart';
+        btn.classList.remove('added');
+      }, 1200);
+    });
+  }
 
   footer.appendChild(price);
   footer.appendChild(btn);
 
   body.appendChild(name);
   body.appendChild(desc);
+  if (metaLine) body.appendChild(metaLine);
   body.appendChild(footer);
   card.appendChild(body);
 
   return card;
 }
 
+const CATEGORIES = [
+  { id: 'all', label: 'All Items' },
+  { id: 'preloved', label: 'Preloved Finds' },
+  { id: 'clearance', label: 'Clearance Sale' },
+  { id: 'soaps', label: 'Soaps' },
+  { id: 'sold-out', label: 'Sold Out' },
+];
+
+function buildCategoryFilters() {
+  const container = document.getElementById('category-filters');
+  if (!container) return;
+
+  CATEGORIES.forEach((cat, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'category-btn';
+    if (i === 0) btn.classList.add('active');
+    btn.textContent = cat.label;
+    btn.dataset.category = cat.id;
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyCategoryFilter(cat.id);
+    });
+    container.appendChild(btn);
+  });
+}
+
+function applyCategoryFilter(categoryId) {
+  const cards = document.querySelectorAll('#storefront .product-card');
+  cards.forEach(card => {
+    let show;
+    if (categoryId === 'all') {
+      show = true;
+    } else if (categoryId === 'sold-out') {
+      show = card.dataset.soldOut === 'true';
+    } else {
+      show = card.dataset.category === categoryId;
+    }
+    card.style.display = show ? '' : 'none';
+  });
+}
+
 function renderStorefront() {
   const root = document.getElementById('storefront');
+  root.innerHTML = '';
   PRODUCTS.forEach(product => root.appendChild(buildCard(product)));
+
+  // Re-apply whichever category tab is currently active
+  const activeBtn = document.querySelector('.category-btn.active');
+  applyCategoryFilter(activeBtn ? activeBtn.dataset.category : 'all');
 }
 
 async function loadProductsAndRender() {
@@ -202,6 +282,9 @@ async function loadProductsAndRender() {
         description: row.description,
         price: row.price,
         weight: row.weight,
+        stockQuantity: row.stock_quantity, // null = not tracked
+        unitsSold: row.units_sold || 0,
+        category: row.category || null,
         images: [row.image_url_1, row.image_url_2, row.image_url_3, row.image_url_4, row.image_url_5]
           .filter(Boolean)
       }));
@@ -215,4 +298,5 @@ async function loadProductsAndRender() {
   renderStorefront();
 }
 
+buildCategoryFilters();
 loadProductsAndRender();

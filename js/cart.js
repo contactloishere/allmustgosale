@@ -148,20 +148,33 @@ function buildCartDrawer() {
 
     const submitBtn = e.target.querySelector('.submit-order');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
 
     const data = new FormData(e.target);
     const region = SHIPPING_RATES.find(r => r.id === data.get('region'));
     const shipping = getShippingRate(data.get('region'), cartTotalWeight());
     const subtotal = cartSubtotal();
+    const paymentMethod = PAYMENT_METHODS.find(m => m.id === data.get('payment_method'));
 
     const items = Object.entries(cart).map(([id, qty]) => {
       const p = getProduct(Number(id));
       return { product_id: p.id, name: p.name, qty, price: p.price };
     });
 
-    // Note: proof of payment file isn't uploaded anywhere yet — that's
-    // Stage 4 (Cloudinary). proof_url stays null until then.
+    // 1. Upload proof of payment to Cloudinary
+    submitBtn.textContent = 'Uploading proof...';
+    let proofUrl;
+    try {
+      proofUrl = await uploadProofOfPayment(data.get('proof'));
+    } catch (err) {
+      console.error('Cloudinary upload failed:', err);
+      alert('Could not upload your proof of payment — please check the image and try again.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit order';
+      return;
+    }
+
+    // 2. Save the order in Supabase
+    submitBtn.textContent = 'Submitting order...';
     const { error } = await supabaseClient.from('orders').insert({
       customer_name: data.get('name'),
       address: data.get('address'),
@@ -173,24 +186,60 @@ function buildCartDrawer() {
       subtotal: subtotal,
       shipping_fee: shipping, // null if over 5kg — matches the "to be confirmed" case
       total: shipping === null ? null : subtotal + shipping,
-      proof_url: null,
+      proof_url: proofUrl,
       status: 'new'
     });
-
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit order';
 
     if (error) {
       console.error('Order submission failed:', error);
       alert('Something went wrong submitting your order — please try again, or message Lois directly on Threads.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit order';
       return;
     }
+
+    // 3. Record the sale against each product's stock/sold count (best-effort —
+    // the order itself is already saved even if this part hiccups)
+    for (const item of items) {
+      try {
+        await supabaseClient.rpc('record_sale', { p_product_id: item.product_id, p_qty: item.qty });
+      } catch (err) {
+        console.warn('Could not update stock/sold count for product', item.product_id, err);
+      }
+    }
+
+    // 4. Ping Telegram (best-effort — order is already saved regardless)
+    try {
+      await fetch('/api/notify-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.get('name'),
+          contact: data.get('contact'),
+          address: data.get('address'),
+          region: region ? region.label : data.get('region'),
+          paymentMethod: paymentMethod ? paymentMethod.label : data.get('payment_method'),
+          items,
+          subtotal,
+          shipping,
+          total: shipping === null ? null : subtotal + shipping,
+          proofUrl
+        })
+      });
+    } catch (err) {
+      console.warn('Telegram notification failed (order was still saved):', err);
+    }
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit order';
 
     alert('Order submitted! Lois will confirm your payment and reach out via Threads DM with your tracking number.');
     for (const id in cart) delete cart[id];
     updateCartBadge();
     e.target.reset();
+    document.getElementById('qr-display').style.display = 'none';
     closeCart();
+    loadProductsAndRender(); // refresh stock/sold-out state on the storefront
   });
 }
 

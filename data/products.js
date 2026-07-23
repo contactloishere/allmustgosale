@@ -9,6 +9,8 @@
 //
 // Fields: id, name, description, price (PHP), weight (kg, hidden from customer),
 // images (array of up to 5 Cloudinary URLs — fewer than 5 is fine)
+// Optional: stockQuantity (leave undefined/null if not tracking stock),
+// unitsSold (defaults to 0), category ('preloved' | 'clearance' | 'soaps' | your own)
 
 let PRODUCTS = [
   {
@@ -17,6 +19,9 @@ let PRODUCTS = [
     description: "Matte stoneware dripper + carafe\nSlight glaze variation on each piece — normal, not a defect\nHolds up to 4 cups\nHand wash recommended",
     price: 890,
     weight: 1.2,
+    stockQuantity: 2,
+    unitsSold: 3,
+    category: "preloved",
     images: [
       "https://picsum.photos/seed/mc1a/800/800",
       "https://picsum.photos/seed/mc1b/800/800",

@@ -59,11 +59,11 @@ body {
   margin: 0 auto;
   padding: 24px 16px 60px;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 22px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 @media (min-width: 640px) {
-  .storefront { grid-template-columns: repeat(2, 1fr); }
+  .storefront { grid-template-columns: repeat(2, 1fr); gap: 22px; }
 }
 @media (min-width: 980px) {
   .storefront { grid-template-columns: repeat(3, 1fr); gap: 26px; }
@@ -478,4 +478,72 @@ body {
   font-size: 0.78rem;
   color: var(--muted);
   margin: 0;
+}
+
+/* Tighter card sizing for the 2-column mobile layout */
+@media (max-width: 639px) {
+  .product-body { padding: 10px 10px 14px; gap: 6px; }
+  .product-name { font-size: 0.85rem; }
+  .product-desc { font-size: 0.76rem; }
+  .price-tag { font-size: 0.78rem; padding: 3px 8px 3px 12px; }
+  .add-to-cart { font-size: 0.74rem; padding: 7px 10px; }
+  .product-footer { flex-wrap: wrap; gap: 6px; }
+}
+
+/* ===== Stage 5: category filters, sold-out, stock urgency ===== */
+
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.category-btn {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.category-btn:hover { background: var(--paper); }
+.category-btn.active {
+  background: var(--moss);
+  border-color: var(--moss);
+  color: var(--paper);
+}
+.category-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.sold-out-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border-radius: 2px;
+  z-index: 2;
+}
+.product-card.is-sold-out .carousel {
+  filter: grayscale(0.5) brightness(0.85);
+}
+
+.product-meta {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--tag);
+  margin: 0;
+}
+
+.add-to-cart:disabled {
+  background: var(--muted);
+  cursor: not-allowed;
 }
