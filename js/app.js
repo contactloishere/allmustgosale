@@ -138,7 +138,7 @@ function buildCard(product) {
 
   const isTracked = product.stockQuantity !== null && product.stockQuantity !== undefined;
   const isSoldOut = isTracked && product.stockQuantity <= 0;
-  const isLowStock = isTracked && !isSoldOut && product.stockQuantity <= 3;
+  const isLowStock = isTracked && !isSoldOut && product.stockQuantity <= 5;
   card.dataset.soldOut = isSoldOut ? 'true' : 'false';
   if (isSoldOut) card.classList.add('is-sold-out');
 

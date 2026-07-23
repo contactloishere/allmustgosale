@@ -70,19 +70,35 @@ function buildCartDrawer() {
 
     <form class="checkout-form" id="checkout-form">
       <label>
-        Full name
+        Full name *
         <input type="text" name="name" required>
       </label>
       <label>
-        Delivery address
+        Delivery address *
         <textarea name="address" rows="2" required></textarea>
       </label>
       <label>
-        Contact number
+        Contact number *
         <input type="tel" name="contact" required placeholder="09XX XXX XXXX">
       </label>
       <label>
-        Shipping region
+        Preferred platform for updates *
+        <select name="contact_platform" id="contact-platform-select" required>
+          <option value="" disabled selected>Select a platform</option>
+          <option value="threads">Threads</option>
+          <option value="imessage">iMessage</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="viber">Viber</option>
+          <option value="instagram">Instagram</option>
+        </select>
+      </label>
+      <label>
+        Your Threads/Instagram handle or iMessage/WhatsApp/Viber number *
+        <input type="text" name="contact_handle" required placeholder="@yourhandle or number">
+      </label>
+      <p class="checkout-note">This is where I'll be reaching you with shipping updates and your tracking number — please keep your notifications on so nothing slips past you 💌</p>
+      <label>
+        Shipping region *
         <select name="region" id="region-select" required>
           <option value="" disabled selected>Select your region</option>
           ${SHIPPING_RATES.map(r => `<option value="${r.id}">${r.label}</option>`).join('')}
@@ -97,7 +113,7 @@ function buildCartDrawer() {
       <p class="manual-quote-note" id="manual-quote-note" style="display:none;">Your order's a bit heavier than our standard rates cover — I'll check the exact shipping cost myself and send it your way over Threads DM before anything ships.</p>
 
       <label>
-        Preferred mode of payment
+        Preferred mode of payment *
         <select name="payment_method" id="payment-method-select" required>
           <option value="" disabled selected>Select a payment method</option>
           ${PAYMENT_METHODS.map(m => `<option value="${m.id}">${m.label}</option>`).join('')}
@@ -110,12 +126,12 @@ function buildCartDrawer() {
       </div>
 
       <label>
-        Upload proof of payment
+        Upload proof of payment *
         <input type="file" name="proof" accept="image/*" required>
       </label>
-      <p class="checkout-note">Payment details will be shown once you select a region. All order updates — including your tracking number — will be sent via Threads DM, so please keep your DMs open.</p>
+      <p class="checkout-note">All order updates — including your tracking number — will be sent via the platform you selected above, so please keep an eye on it.</p>
 
-      <button type="submit" class="submit-order">Submit order</button>
+      <button type="submit" class="submit-order" disabled>Submit order</button>
     </form>
   `;
 
@@ -126,6 +142,16 @@ function buildCartDrawer() {
   overlay.addEventListener('click', e => { if (e.target === overlay) closeCart(); });
 
   document.getElementById('region-select').addEventListener('change', updateShippingAndTotal);
+
+  const checkoutForm = document.getElementById('checkout-form');
+  const submitButton = checkoutForm.querySelector('.submit-order');
+
+  function refreshSubmitState() {
+    submitButton.disabled = !checkoutForm.checkValidity();
+  }
+  checkoutForm.addEventListener('input', refreshSubmitState);
+  checkoutForm.addEventListener('change', refreshSubmitState);
+  refreshSubmitState();
 
   document.getElementById('payment-method-select').addEventListener('change', e => {
     const method = PAYMENT_METHODS.find(m => m.id === e.target.value);
@@ -179,6 +205,8 @@ function buildCartDrawer() {
       customer_name: data.get('name'),
       address: data.get('address'),
       contact_number: data.get('contact'),
+      contact_platform: data.get('contact_platform'),
+      contact_handle: data.get('contact_handle'),
       region_id: data.get('region'),
       region_label: region ? region.label : null,
       payment_method: data.get('payment_method'),
@@ -216,6 +244,8 @@ function buildCartDrawer() {
         body: JSON.stringify({
           name: data.get('name'),
           contact: data.get('contact'),
+          contactPlatform: data.get('contact_platform'),
+          contactHandle: data.get('contact_handle'),
           address: data.get('address'),
           region: region ? region.label : data.get('region'),
           paymentMethod: paymentMethod ? paymentMethod.label : data.get('payment_method'),
@@ -237,6 +267,7 @@ function buildCartDrawer() {
     for (const id in cart) delete cart[id];
     updateCartBadge();
     e.target.reset();
+    refreshSubmitState();
     document.getElementById('qr-display').style.display = 'none';
     closeCart();
     loadProductsAndRender(); // refresh stock/sold-out state on the storefront

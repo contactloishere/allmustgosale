@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
   try {
     const {
-      name, contact, address, region, paymentMethod,
+      name, contact, contactPlatform, contactHandle, address, region, paymentMethod,
       items, subtotal, shipping, total, proofUrl
     } = req.body;
 
@@ -38,6 +38,7 @@ export default async function handler(req, res) {
       `🛍️ New order — Lois T.'s Clearance Sale\n\n` +
       `Name: ${name}\n` +
       `Contact: ${contact}\n` +
+      `Reach them via: ${contactPlatform} — ${contactHandle}\n` +
       `Address: ${address}\n` +
       `Region: ${region}\n` +
       `Payment method: ${paymentMethod}\n\n` +

@@ -67,3 +67,20 @@ https://allmustgosale.vercel.app
 
 ## How to preview locally
 Open `index.html` in a browser — no build step, no dependencies.
+
+## Round 6 updates
+- [x] Subtitle copy updated (minimalism/simple-living framing) — two paragraphs now
+- [x] Low-stock urgency threshold widened from ≤3 to ≤5 units
+- [x] New checkout fields: "Preferred platform for updates" (Threads/iMessage/
+      WhatsApp/Viber/Instagram) + their handle/number on that platform —
+      see `supabase-schema-update-3.sql` (adds `contact_platform`, `contact_handle`
+      to the `orders` table) — also included in the Telegram ping
+- [x] Every checkout field is now marked required with an asterisk
+- [x] Submit button stays grayed out and disabled until every required field
+      is filled in — colorizes automatically the moment the form is valid
+
+## ACTION NEEDED for this round
+1. Run `supabase-schema-update-3.sql` in Supabase → SQL Editor
+2. Re-upload files to GitHub as usual
+3. Still pending: confirm Telegram env vars are checked for "Production" in
+   Vercel, and check the Vercel function logs if the ping still doesn't fire
