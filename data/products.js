@@ -18,6 +18,7 @@ let PRODUCTS = [
     name: "Ceramic Pour-Over Set",
     description: "Matte stoneware dripper + carafe\nSlight glaze variation on each piece — normal, not a defect\nHolds up to 4 cups\nHand wash recommended",
     price: 890,
+    originalPrice: 1200,
     weight: 1.2,
     stockQuantity: 2,
     unitsSold: 3,

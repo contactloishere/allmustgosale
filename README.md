@@ -107,3 +107,9 @@ Open `index.html` in a browser — no build step, no dependencies.
 - [x] Subtitle copy updated again (single paragraph) and its font now matches
       the footer's monospace font
 - [x] Footer copy simplified (no em dash)
+
+## Round 9 updates
+- [x] Optional strikethrough "original price" next to the current price —
+      see `supabase-schema-update-4.sql` (adds `original_price` to `products`)
+- [x] Only shows when `original_price` is set and higher than `price` —
+      leave it blank for anything that isn't discounted

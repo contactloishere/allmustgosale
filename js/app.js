@@ -174,9 +174,20 @@ function buildCard(product) {
   const footer = document.createElement('div');
   footer.className = 'product-footer';
 
+  const priceWrap = document.createElement('div');
+  priceWrap.className = 'price-wrap';
+
+  if (product.originalPrice && product.originalPrice > product.price) {
+    const originalPrice = document.createElement('span');
+    originalPrice.className = 'original-price';
+    originalPrice.textContent = formatPrice(product.originalPrice);
+    priceWrap.appendChild(originalPrice);
+  }
+
   const price = document.createElement('span');
   price.className = 'price-tag';
   price.textContent = formatPrice(product.price);
+  priceWrap.appendChild(price);
 
   const btn = document.createElement('button');
   btn.className = 'add-to-cart';
@@ -198,7 +209,7 @@ function buildCard(product) {
     });
   }
 
-  footer.appendChild(price);
+  footer.appendChild(priceWrap);
   footer.appendChild(btn);
 
   body.appendChild(name);
@@ -281,6 +292,7 @@ async function loadProductsAndRender() {
         name: row.name,
         description: row.description,
         price: row.price,
+        originalPrice: row.original_price, // null = not discounted, no strikethrough shown
         weight: row.weight,
         stockQuantity: row.stock_quantity, // null = not tracked
         unitsSold: row.units_sold || 0,

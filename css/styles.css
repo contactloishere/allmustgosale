@@ -554,3 +554,20 @@ body {
   cursor: not-allowed;
   opacity: 0.65;
 }
+
+.price-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.original-price {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--tag);
+}
+@media (max-width: 639px) {
+  .original-price { font-size: 0.7rem; }
+}
