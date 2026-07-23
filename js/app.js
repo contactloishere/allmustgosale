@@ -7,25 +7,23 @@ function formatPrice(php) {
   return '₱' + php.toLocaleString('en-PH');
 }
 
-function buildCarousel(product) {
+function buildCarousel(images, altText) {
   const wrap = document.createElement('div');
   wrap.className = 'carousel';
 
   const track = document.createElement('div');
   track.className = 'carousel-track';
 
-  product.images.forEach(src => {
+  images.forEach(src => {
     const slide = document.createElement('div');
     slide.className = 'carousel-slide';
 
     const img = document.createElement('img');
     img.src = src;
-    img.alt = product.name;
+    img.alt = altText;
     img.loading = 'lazy';
 
     // Tap/click a photo -> open full-res version in a new tab.
-    // (When these become real Cloudinary URLs, this opens the
-    // original file directly, same as it does with the placeholders now.)
     slide.addEventListener('click', () => window.open(src, '_blank'));
 
     slide.appendChild(img);
@@ -36,10 +34,10 @@ function buildCarousel(product) {
 
   // Dots (only if more than 1 image)
   let dots = null;
-  if (product.images.length > 1) {
+  if (images.length > 1) {
     dots = document.createElement('div');
     dots.className = 'carousel-dots';
-    product.images.forEach((_, i) => {
+    images.forEach((_, i) => {
       const dot = document.createElement('span');
       if (i === 0) dot.classList.add('active');
       dots.appendChild(dot);
@@ -49,7 +47,7 @@ function buildCarousel(product) {
 
   // --- Swipe handling ---
   let index = 0;
-  const total = product.images.length;
+  const total = images.length;
 
   function goTo(i) {
     index = Math.max(0, Math.min(total - 1, i));
@@ -82,7 +80,7 @@ function buildCarousel(product) {
     deltaX = 0;
   });
 
-  return wrap;
+  return { element: wrap, goTo };
 }
 
 const DESC_PREVIEW_COUNT = 2;
@@ -117,12 +115,23 @@ function buildDescription(rawDescription) {
     toggle.textContent = 'See more';
 
     let expanded = false;
-    toggle.addEventListener('click', () => {
-      expanded = !expanded;
+
+    function setExpanded(value) {
+      expanded = value;
       [...list.children].forEach((li, i) => {
         if (i >= DESC_PREVIEW_COUNT) li.hidden = !expanded;
       });
       toggle.textContent = expanded ? 'See less' : 'See more';
+    }
+
+    toggle.addEventListener('click', e => {
+      e.stopPropagation();
+      setExpanded(!expanded);
+    });
+
+    // Once expanded, tapping anywhere else in the description also collapses it
+    wrap.addEventListener('click', e => {
+      if (expanded && e.target !== toggle) setExpanded(false);
     });
 
     wrap.appendChild(toggle);
@@ -136,20 +145,36 @@ function buildCard(product) {
   card.className = 'product-card';
   card.dataset.category = product.category || 'uncategorized';
 
+  const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+
+  // Pool the product's own photos with every variant's photo into one gallery
+  const variantImages = hasVariants ? product.variants.map(v => v.image).filter(Boolean) : [];
+  const allImages = [...product.images, ...variantImages];
+
+  // Card-level sold-out: for non-variant products, based on the product's own stock.
+  // For variant products, only sold out if EVERY variant is sold out.
   const isTracked = product.stockQuantity !== null && product.stockQuantity !== undefined;
-  const isSoldOut = isTracked && product.stockQuantity <= 0;
-  const isLowStock = isTracked && !isSoldOut && product.stockQuantity <= 5;
+  let isSoldOut, isLowStock;
+  if (hasVariants) {
+    isSoldOut = product.variants.every(v =>
+      v.stockQuantity !== null && v.stockQuantity !== undefined && v.stockQuantity <= 0
+    );
+    isLowStock = false; // per-variant urgency is shown after a selection instead
+  } else {
+    isSoldOut = isTracked && product.stockQuantity <= 0;
+    isLowStock = isTracked && !isSoldOut && product.stockQuantity <= 5;
+  }
   card.dataset.soldOut = isSoldOut ? 'true' : 'false';
   if (isSoldOut) card.classList.add('is-sold-out');
 
-  const carousel = buildCarousel(product);
+  const carousel = buildCarousel(allImages, product.name);
   if (isSoldOut) {
     const badge = document.createElement('div');
     badge.className = 'sold-out-badge';
     badge.textContent = 'SOLD OUT';
-    carousel.appendChild(badge);
+    carousel.element.appendChild(badge);
   }
-  card.appendChild(carousel);
+  card.appendChild(carousel.element);
 
   const body = document.createElement('div');
   body.className = 'product-body';
@@ -160,16 +185,28 @@ function buildCard(product) {
 
   const desc = buildDescription(product.description);
 
-  // Sold count / low-stock urgency line (only shown when there's something to say)
-  let metaLine = null;
-  if (isLowStock || product.unitsSold > 0) {
-    metaLine = document.createElement('p');
-    metaLine.className = 'product-meta';
+  // Sold count / low-stock urgency line (only shown when there's something to say;
+  // for variant products this updates once a variant is picked, see below)
+  const metaLine = document.createElement('p');
+  metaLine.className = 'product-meta';
+  metaLine.style.display = 'none';
+
+  function updateMetaLine(stockQuantity, unitsSold) {
+    const tracked = stockQuantity !== null && stockQuantity !== undefined;
+    const soldOutNow = tracked && stockQuantity <= 0;
+    const lowNow = tracked && !soldOutNow && stockQuantity <= 5;
     const parts = [];
-    if (isLowStock) parts.push(`Only ${product.stockQuantity} left`);
-    if (product.unitsSold > 0) parts.push(`${product.unitsSold} sold`);
-    metaLine.textContent = parts.join(' · ');
+    if (lowNow) parts.push(`Only ${stockQuantity} left`);
+    if (unitsSold > 0) parts.push(`${unitsSold} sold`);
+    if (parts.length > 0) {
+      metaLine.textContent = parts.join(' · ');
+      metaLine.style.display = '';
+    } else {
+      metaLine.style.display = 'none';
+    }
   }
+
+  if (!hasVariants) updateMetaLine(product.stockQuantity, product.unitsSold);
 
   const footer = document.createElement('div');
   footer.className = 'product-footer';
@@ -193,28 +230,93 @@ function buildCard(product) {
   btn.className = 'add-to-cart';
   btn.type = 'button';
 
-  if (isSoldOut) {
-    btn.textContent = 'Sold out';
-    btn.disabled = true;
-  } else {
-    btn.textContent = 'Add to cart';
-    btn.addEventListener('click', () => {
-      addToCart(product.id);
-      btn.textContent = 'Added';
-      btn.classList.add('added');
-      setTimeout(() => {
+  let selectedVariant = null; // set via the dropdown, when variants exist
+
+  function refreshAddToCartButton() {
+    if (hasVariants) {
+      if (!selectedVariant) {
+        btn.textContent = 'Select an option';
+        btn.disabled = true;
+        return;
+      }
+      const vSoldOut = selectedVariant.stockQuantity !== null && selectedVariant.stockQuantity !== undefined && selectedVariant.stockQuantity <= 0;
+      if (vSoldOut) {
+        btn.textContent = 'Sold out';
+        btn.disabled = true;
+      } else {
         btn.textContent = 'Add to cart';
-        btn.classList.remove('added');
-      }, 1200);
-    });
+        btn.disabled = false;
+      }
+    } else {
+      if (isSoldOut) {
+        btn.textContent = 'Sold out';
+        btn.disabled = true;
+      } else {
+        btn.textContent = 'Add to cart';
+        btn.disabled = false;
+      }
+    }
   }
+  refreshAddToCartButton();
+
+  btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    addToCart(product.id, selectedVariant ? selectedVariant.id : null);
+    const original = btn.textContent;
+    btn.textContent = 'Added';
+    btn.classList.add('added');
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.classList.remove('added');
+    }, 1200);
+  });
 
   footer.appendChild(priceWrap);
   footer.appendChild(btn);
 
   body.appendChild(name);
   body.appendChild(desc);
-  if (metaLine) body.appendChild(metaLine);
+
+  if (hasVariants) {
+    const variantSelect = document.createElement('select');
+    variantSelect.className = 'variant-select';
+
+    const placeholderOpt = document.createElement('option');
+    placeholderOpt.value = '';
+    placeholderOpt.textContent = 'Select an option';
+    placeholderOpt.disabled = true;
+    placeholderOpt.selected = true;
+    variantSelect.appendChild(placeholderOpt);
+
+    product.variants.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.id;
+      const vSoldOut = v.stockQuantity !== null && v.stockQuantity !== undefined && v.stockQuantity <= 0;
+      opt.textContent = vSoldOut ? `${v.name} (Sold out)` : v.name;
+      if (vSoldOut) opt.disabled = true;
+      variantSelect.appendChild(opt);
+    });
+
+    variantSelect.addEventListener('change', () => {
+      const chosen = product.variants.find(v => String(v.id) === variantSelect.value);
+      selectedVariant = chosen || null;
+      refreshAddToCartButton();
+
+      if (chosen) {
+        updateMetaLine(chosen.stockQuantity, chosen.unitsSold);
+        if (chosen.image) {
+          const imgIndex = allImages.indexOf(chosen.image);
+          if (imgIndex >= 0) carousel.goTo(imgIndex);
+        }
+      } else {
+        metaLine.style.display = 'none';
+      }
+    });
+
+    body.appendChild(variantSelect);
+  }
+
+  body.appendChild(metaLine);
   body.appendChild(footer);
   card.appendChild(body);
 
@@ -286,20 +388,40 @@ async function loadProductsAndRender() {
 
     if (error) throw error;
 
+    const { data: variantRows, error: variantError } = await supabaseClient
+      .from('product_variants')
+      .select('*')
+      .order('display_order', { ascending: true });
+
+    if (variantError) console.warn('Could not load product variants:', variantError);
+
     if (data && data.length > 0) {
-      PRODUCTS = data.map(row => ({
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        price: row.price,
-        originalPrice: row.original_price, // null = not discounted, no strikethrough shown
-        weight: row.weight,
-        stockQuantity: row.stock_quantity, // null = not tracked
-        unitsSold: row.units_sold || 0,
-        category: row.category || null,
-        images: [row.image_url_1, row.image_url_2, row.image_url_3, row.image_url_4, row.image_url_5]
-          .filter(Boolean)
-      }));
+      PRODUCTS = data.map(row => {
+        const variants = (variantRows || [])
+          .filter(v => v.product_id === row.id)
+          .map(v => ({
+            id: v.id,
+            name: v.variant_name,
+            image: v.image_url,
+            stockQuantity: v.stock_quantity,
+            unitsSold: v.units_sold || 0
+          }));
+
+        return {
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          price: row.price,
+          originalPrice: row.original_price, // null = not discounted, no strikethrough shown
+          weight: row.weight,
+          stockQuantity: row.stock_quantity, // null = not tracked (ignored if variants exist)
+          unitsSold: row.units_sold || 0,
+          category: row.category || null,
+          variants: variants, // empty array = no variants, behaves as before
+          images: [row.image_url_1, row.image_url_2, row.image_url_3, row.image_url_4, row.image_url_5]
+            .filter(Boolean)
+        };
+      });
     }
     // If the table is empty, PRODUCTS stays as the fallback placeholder data.
   } catch (err) {

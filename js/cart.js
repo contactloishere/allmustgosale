@@ -3,10 +3,21 @@
 // Telegram ping are Stage 3/4 — for now, submit just shows a summary
 // so the whole flow is testable end-to-end.
 
-const cart = {}; // { productId: quantity }
+const cart = {}; // { cartKey: quantity } — cartKey is "productId" or "productId::variantId"
 
 function getProduct(id) {
   return PRODUCTS.find(p => p.id === id);
+}
+
+// Parses a cart key back into its product + variant (variant may be null)
+function getCartLine(cartKey) {
+  const [productIdStr, variantIdStr] = String(cartKey).split('::');
+  const product = getProduct(Number(productIdStr));
+  if (!product) return null;
+  const variant = variantIdStr
+    ? (product.variants || []).find(v => String(v.id) === variantIdStr)
+    : null;
+  return { product, variant };
 }
 
 function cartCount() {
@@ -14,29 +25,30 @@ function cartCount() {
 }
 
 function cartTotalWeight() {
-  return Object.entries(cart).reduce((sum, [id, qty]) => {
-    const p = getProduct(Number(id));
-    return sum + (p ? p.weight * qty : 0);
+  return Object.entries(cart).reduce((sum, [key, qty]) => {
+    const line = getCartLine(key);
+    return sum + (line ? line.product.weight * qty : 0);
   }, 0);
 }
 
 function cartSubtotal() {
-  return Object.entries(cart).reduce((sum, [id, qty]) => {
-    const p = getProduct(Number(id));
-    return sum + (p ? p.price * qty : 0);
+  return Object.entries(cart).reduce((sum, [key, qty]) => {
+    const line = getCartLine(key);
+    return sum + (line ? line.product.price * qty : 0);
   }, 0);
 }
 
-function addToCart(productId) {
-  cart[productId] = (cart[productId] || 0) + 1;
+function addToCart(productId, variantId) {
+  const key = variantId ? `${productId}::${variantId}` : `${productId}`;
+  cart[key] = (cart[key] || 0) + 1;
   updateCartBadge();
 }
 
-function setQty(productId, qty) {
+function setQty(cartKey, qty) {
   if (qty <= 0) {
-    delete cart[productId];
+    delete cart[cartKey];
   } else {
-    cart[productId] = qty;
+    cart[cartKey] = qty;
   }
   updateCartBadge();
   renderCartItems();
@@ -211,9 +223,16 @@ function buildCartDrawer() {
     const subtotal = cartSubtotal();
     const paymentMethod = PAYMENT_METHODS.find(m => m.id === data.get('payment_method'));
 
-    const items = Object.entries(cart).map(([id, qty]) => {
-      const p = getProduct(Number(id));
-      return { product_id: p.id, name: p.name, qty, price: p.price };
+    const items = Object.entries(cart).map(([key, qty]) => {
+      const line = getCartLine(key);
+      const { product, variant } = line;
+      return {
+        product_id: product.id,
+        variant_id: variant ? variant.id : null,
+        name: variant ? `${product.name} — ${variant.name}` : product.name,
+        qty,
+        price: product.price
+      };
     });
 
     // 1. Upload proof of payment to Cloudinary
@@ -256,13 +275,17 @@ function buildCartDrawer() {
       return;
     }
 
-    // 3. Record the sale against each product's stock/sold count (best-effort —
-    // the order itself is already saved even if this part hiccups)
+    // 3. Record the sale against each product's (or variant's) stock/sold count
+    // (best-effort — the order itself is already saved even if this part hiccups)
     for (const item of items) {
       try {
-        await supabaseClient.rpc('record_sale', { p_product_id: item.product_id, p_qty: item.qty });
+        if (item.variant_id) {
+          await supabaseClient.rpc('record_variant_sale', { p_variant_id: item.variant_id, p_qty: item.qty });
+        } else {
+          await supabaseClient.rpc('record_sale', { p_product_id: item.product_id, p_qty: item.qty });
+        }
       } catch (err) {
-        console.warn('Could not update stock/sold count for product', item.product_id, err);
+        console.warn('Could not update stock/sold count for item', item, err);
       }
     }
 
@@ -306,22 +329,27 @@ function buildCartDrawer() {
 
 function renderCartItems() {
   const container = document.getElementById('cart-items');
-  const ids = Object.keys(cart);
+  const keys = Object.keys(cart);
 
-  if (ids.length === 0) {
+  if (keys.length === 0) {
     container.innerHTML = `<p class="cart-empty">Your cart is empty.</p>`;
     return;
   }
 
-  container.innerHTML = ids.map(id => {
-    const p = getProduct(Number(id));
-    const qty = cart[id];
+  container.innerHTML = keys.map(key => {
+    const line = getCartLine(key);
+    if (!line) return '';
+    const { product, variant } = line;
+    const qty = cart[key];
+    const displayName = variant ? `${product.name} — ${variant.name}` : product.name;
+    const img = (variant && variant.image) ? variant.image : product.images[0];
+
     return `
-      <div class="cart-item" data-id="${id}">
-        <img src="${p.images[0]}" alt="${p.name}">
+      <div class="cart-item" data-key="${key}">
+        <img src="${img}" alt="${displayName}">
         <div class="cart-item__info">
-          <p class="cart-item__name">${p.name}</p>
-          <p class="cart-item__price">₱${p.price.toLocaleString('en-PH')}</p>
+          <p class="cart-item__name">${displayName}</p>
+          <p class="cart-item__price">₱${product.price.toLocaleString('en-PH')}</p>
         </div>
         <div class="qty-control">
           <button type="button" class="qty-btn" data-action="dec">−</button>
@@ -333,9 +361,9 @@ function renderCartItems() {
   }).join('');
 
   container.querySelectorAll('.cart-item').forEach(el => {
-    const id = Number(el.dataset.id);
-    el.querySelector('[data-action="inc"]').addEventListener('click', () => setQty(id, cart[id] + 1));
-    el.querySelector('[data-action="dec"]').addEventListener('click', () => setQty(id, cart[id] - 1));
+    const key = el.dataset.key;
+    el.querySelector('[data-action="inc"]').addEventListener('click', () => setQty(key, cart[key] + 1));
+    el.querySelector('[data-action="dec"]').addEventListener('click', () => setQty(key, cart[key] - 1));
   });
 }
 

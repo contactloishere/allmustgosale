@@ -113,3 +113,31 @@ Open `index.html` in a browser — no build step, no dependencies.
       see `supabase-schema-update-4.sql` (adds `original_price` to `products`)
 - [x] Only shows when `original_price` is set and higher than `price` —
       leave it blank for anything that isn't discounted
+
+## Round 10 updates — Product variants
+- [x] Optional variants per product — see `supabase-schema-update-5.sql`
+      (new `product_variants` table: variant name, its own photo, its own
+      stock count, plus a `record_variant_sale()` function)
+- [x] A product with zero variant rows behaves exactly as before (no dropdown,
+      stock/sold-out tracked on the product itself)
+- [x] A product WITH variants: the carousel pools the product's own photos
+      together with every variant's photo into one swipeable gallery; a
+      dropdown below the description lists each variant with its stock
+      status (e.g. "Citrus (Sold out)"); picking one jumps the carousel to
+      that variant's photo and updates the "Only X left"/"X sold" line to
+      that specific variant
+- [x] Add to Cart is disabled until a variant is picked (for variant products),
+      and disabled again if the picked variant is sold out
+- [x] Cart, checkout, Supabase orders, stock-recording, and the Telegram
+      ping all correctly track which variant was ordered (shown as
+      "Product Name — Variant Name")
+- [x] Card-level "SOLD OUT" badge only shows once ALL variants are sold out;
+      individual sold-out variants are just disabled in the dropdown until then
+
+## How to add variants to a product
+In Supabase → Table Editor → `product_variants` → Insert row:
+- `product_id`: the parent product's ID (from the `products` table)
+- `variant_name`: e.g. "Lavender"
+- `image_url`: that variant's own Cloudinary photo
+- `stock_quantity`: leave blank to not track stock for that specific variant
+- `display_order`: optional, lower numbers show first

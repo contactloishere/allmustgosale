@@ -575,3 +575,18 @@ body {
   .original-price { font-size: 0.8rem; }
   .original-price + .price-tag { font-size: 1.05rem; }
 }
+
+.variant-select {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  color: var(--ink);
+  width: 100%;
+}
+.variant-select:focus-visible {
+  outline: 2px solid var(--moss);
+  outline-offset: 1px;
+}
