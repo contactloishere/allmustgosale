@@ -563,15 +563,15 @@ body {
 }
 .original-price {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: var(--muted);
   text-decoration: line-through;
   text-decoration-color: var(--tag);
 }
 .original-price + .price-tag {
-  font-size: 1.08rem;
+  font-size: 1.3rem;
 }
 @media (max-width: 639px) {
-  .original-price { font-size: 0.7rem; }
-  .original-price + .price-tag { font-size: 0.9rem; }
+  .original-price { font-size: 0.8rem; }
+  .original-price + .price-tag { font-size: 1.05rem; }
 }
