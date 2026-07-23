@@ -94,3 +94,16 @@ Open `index.html` in a browser — no build step, no dependencies.
 2. Re-upload files to GitHub as usual
 3. Still pending: confirm Telegram env vars are checked for "Production" in
    Vercel, and check the Vercel function logs if the ping still doesn't fire
+
+## Round 8 updates
+- [x] Fixed browser tab title + link preview (og:title/og:description) to
+      "Lois Torre's Clearance Sale" — this is what shows when the link is
+      shared in iMessage/Threads/etc.
+- [x] Checkout note moved to appear right after "Preferred platform for
+      updates," before the handle/number field
+- [x] Handle/number field now adapts automatically to the selected platform:
+      Threads/Instagram require a leading "@"; iMessage/WhatsApp/Viber accept
+      digits only, capped at 11, with the label and placeholder updating to match
+- [x] Subtitle copy updated again (single paragraph) and its font now matches
+      the footer's monospace font
+- [x] Footer copy simplified (no em dash)

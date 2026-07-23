@@ -92,11 +92,11 @@ function buildCartDrawer() {
           <option value="instagram">Instagram</option>
         </select>
       </label>
-      <label>
-        Your Threads/Instagram handle or iMessage/WhatsApp/Viber number *
-        <input type="text" name="contact_handle" required placeholder="@yourhandle or number">
-      </label>
       <p class="checkout-note">This is where I will be reaching out to you with shipping updates and your tracking number. Please keep your account open for messages.</p>
+      <label>
+        <span id="contact-handle-label">Your handle or number *</span>
+        <input type="text" name="contact_handle" id="contact-handle-input" required placeholder="Select a platform first">
+      </label>
       <label>
         Shipping region *
         <select name="region" id="region-select" required>
@@ -129,7 +129,6 @@ function buildCartDrawer() {
         Upload proof of payment *
         <input type="file" name="proof" accept="image/*" required>
       </label>
-      <p class="checkout-note">All order updates — including your tracking number — will be sent via the platform you selected above, so please keep an eye on it.</p>
 
       <button type="submit" class="submit-order" disabled>Submit order</button>
     </form>
@@ -142,6 +141,37 @@ function buildCartDrawer() {
   overlay.addEventListener('click', e => { if (e.target === overlay) closeCart(); });
 
   document.getElementById('region-select').addEventListener('change', updateShippingAndTotal);
+
+  const HANDLE_MODES = {
+    threads:   { label: 'Your Threads handle *',   placeholder: '@yourhandle',      type: 'text', pattern: '^@.+', maxlength: null, inputmode: null },
+    instagram: { label: 'Your Instagram handle *',  placeholder: '@yourhandle',      type: 'text', pattern: '^@.+', maxlength: null, inputmode: null },
+    imessage:  { label: 'Your iMessage number (11 digits) *', placeholder: '09XXXXXXXXX', type: 'tel', pattern: '^\\d{11}$', maxlength: 11, inputmode: 'numeric' },
+    whatsapp:  { label: 'Your WhatsApp number (11 digits) *', placeholder: '09XXXXXXXXX', type: 'tel', pattern: '^\\d{11}$', maxlength: 11, inputmode: 'numeric' },
+    viber:     { label: 'Your Viber number (11 digits) *',    placeholder: '09XXXXXXXXX', type: 'tel', pattern: '^\\d{11}$', maxlength: 11, inputmode: 'numeric' },
+  };
+
+  const handleInput = document.getElementById('contact-handle-input');
+  const handleLabel = document.getElementById('contact-handle-label');
+
+  document.getElementById('contact-platform-select').addEventListener('change', e => {
+    const mode = HANDLE_MODES[e.target.value];
+    handleInput.value = '';
+    if (!mode) return;
+    handleLabel.textContent = mode.label;
+    handleInput.placeholder = mode.placeholder;
+    handleInput.type = mode.type;
+    handleInput.setAttribute('pattern', mode.pattern);
+    if (mode.maxlength) { handleInput.maxLength = mode.maxlength; } else { handleInput.removeAttribute('maxlength'); }
+    if (mode.inputmode) { handleInput.setAttribute('inputmode', mode.inputmode); } else { handleInput.removeAttribute('inputmode'); }
+  });
+
+  // Live-sanitize: for phone-based platforms, strip anything that isn't a digit as they type
+  handleInput.addEventListener('input', () => {
+    const platform = document.getElementById('contact-platform-select').value;
+    if (['imessage', 'whatsapp', 'viber'].includes(platform)) {
+      handleInput.value = handleInput.value.replace(/\D/g, '').slice(0, 11);
+    }
+  });
 
   const checkoutForm = document.getElementById('checkout-form');
   const submitButton = checkoutForm.querySelector('.submit-order');

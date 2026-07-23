@@ -44,9 +44,9 @@ body {
   color: var(--ink);
 }
 .site-subtitle {
-  font-family: var(--font-body);
-  font-size: 0.92rem;
-  line-height: 1.55;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
   color: var(--ink);
   opacity: 0.75;
   margin: 10px 0 0;
