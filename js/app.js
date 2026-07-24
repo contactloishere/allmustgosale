@@ -174,7 +174,7 @@ function closeLightbox() {
 function buildCard(product) {
   const card = document.createElement('article');
   card.className = 'product-card';
-  card.dataset.category = product.category || 'uncategorized';
+  card.dataset.category = (product.category && product.category.length) ? product.category.join(',') : 'uncategorized';
 
   const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
 
@@ -401,7 +401,7 @@ function applyCategoryFilter(categoryId) {
     } else if (categoryId === 'sold-out') {
       show = card.dataset.soldOut === 'true';
     } else {
-      show = card.dataset.category === categoryId;
+      show = card.dataset.category.split(',').includes(categoryId);
     }
     card.style.display = show ? '' : 'none';
   });
@@ -457,7 +457,9 @@ async function loadProductsAndRender() {
           weight: row.weight,
           stockQuantity: row.stock_quantity, // null = not tracked (ignored if variants exist)
           unitsSold: row.units_sold || 0,
-          category: row.category || null,
+          category: row.category
+            ? row.category.split(',').map(s => s.trim()).filter(Boolean)
+            : [],
           variants: variants, // empty array = no variants, behaves as before
           images: [row.image_url_1, row.image_url_2, row.image_url_3, row.image_url_4, row.image_url_5]
             .filter(Boolean)

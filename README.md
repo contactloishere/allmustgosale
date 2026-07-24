@@ -166,3 +166,9 @@ In Supabase → Table Editor → `product_variants` → Insert row:
       fullscreen swipeable lightbox: tap any photo, it opens large with the
       same dot indicators, swipe through the rest without closing and
       reopening — close via the × or tapping outside the photo
+
+## Round 14 updates
+- [x] A product can now belong to multiple categories at once — no new
+      database column needed. In Supabase's `category` field, just separate
+      values with a comma, e.g. `soaps, clearance` — that product will now
+      show up under both the Soaps and Clearance Sale filter tabs
