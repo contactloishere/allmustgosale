@@ -601,3 +601,56 @@ body {
   border-bottom: 1px solid var(--line);
   margin-bottom: 4px;
 }
+
+/* ===== Fullscreen swipeable photo lightbox ===== */
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 18, 0.95);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.lightbox-overlay.open { display: flex; }
+
+.lightbox-content {
+  width: 100%;
+  max-width: 640px;
+  padding: 20px;
+}
+
+.lightbox-carousel {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  background: transparent;
+}
+.lightbox-carousel .carousel-slide {
+  cursor: default;
+}
+.lightbox-carousel .carousel-slide img {
+  object-fit: contain;
+}
+.lightbox-carousel .carousel-dots span {
+  background: rgba(255,255,255,0.35);
+  border-color: rgba(255,255,255,0.5);
+}
+.lightbox-carousel .carousel-dots span.active {
+  background: var(--paper);
+}
+
+.lightbox-close {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--paper);
+  font-size: 2.2rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 101;
+  padding: 6px 10px;
+}
+.lightbox-close:focus-visible { outline: 2px solid var(--paper); }

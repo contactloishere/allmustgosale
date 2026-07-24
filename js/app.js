@@ -7,14 +7,14 @@ function formatPrice(php) {
   return '₱' + php.toLocaleString('en-PH');
 }
 
-function buildCarousel(images, altText) {
+function buildCarousel(images, altText, enableZoom = true) {
   const wrap = document.createElement('div');
   wrap.className = 'carousel';
 
   const track = document.createElement('div');
   track.className = 'carousel-track';
 
-  images.forEach(src => {
+  images.forEach((src, i) => {
     const slide = document.createElement('div');
     slide.className = 'carousel-slide';
 
@@ -23,8 +23,9 @@ function buildCarousel(images, altText) {
     img.alt = altText;
     img.loading = 'lazy';
 
-    // Tap/click a photo -> open full-res version in a new tab.
-    slide.addEventListener('click', () => window.open(src, '_blank'));
+    if (enableZoom) {
+      slide.addEventListener('click', () => openLightbox(images, altText, i));
+    }
 
     slide.appendChild(img);
     track.appendChild(slide);
@@ -140,6 +141,36 @@ function buildDescription(rawDescription) {
   return wrap;
 }
 
+function buildLightbox() {
+  const overlay = document.createElement('div');
+  overlay.className = 'lightbox-overlay';
+  overlay.id = 'lightbox-overlay';
+  overlay.innerHTML = `
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Close">×</button>
+    <div class="lightbox-content" id="lightbox-content"></div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeLightbox(); });
+}
+
+function openLightbox(images, altText, startIndex) {
+  const content = document.getElementById('lightbox-content');
+  content.innerHTML = '';
+
+  const carousel = buildCarousel(images, altText, false); // no nested zoom inside the lightbox
+  carousel.element.classList.add('lightbox-carousel');
+  content.appendChild(carousel.element);
+  carousel.goTo(startIndex);
+
+  document.getElementById('lightbox-overlay').classList.add('open');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox-overlay').classList.remove('open');
+}
+
 function buildCard(product) {
   const card = document.createElement('article');
   card.className = 'product-card';
@@ -185,19 +216,22 @@ function buildCard(product) {
 
   const desc = buildDescription(product.description);
 
-  // Sold count / low-stock urgency line (only shown when there's something to say;
-  // for variant products this updates once a variant is picked, see below)
+  // Sold count / low-stock urgency line
   const metaLine = document.createElement('p');
   metaLine.className = 'product-meta';
   metaLine.style.display = 'none';
 
-  function updateMetaLine(stockQuantity, unitsSold) {
-    const tracked = stockQuantity !== null && stockQuantity !== undefined;
-    const soldOutNow = tracked && stockQuantity <= 0;
-    const lowNow = tracked && !soldOutNow && stockQuantity <= 5;
+  // For variant products, total sold is the sum across all variants — shown
+  // immediately, even before a variant is picked. Low-stock text is
+  // variant-specific and only appears once one is selected.
+  const totalUnitsSold = hasVariants
+    ? product.variants.reduce((sum, v) => sum + (v.unitsSold || 0), 0)
+    : (product.unitsSold || 0);
+
+  function renderMetaLine(lowStockQty) {
     const parts = [];
-    if (lowNow) parts.push(`Only ${stockQuantity} left`);
-    if (unitsSold > 0) parts.push(`${unitsSold} sold`);
+    if (lowStockQty !== null && lowStockQty !== undefined) parts.push(`Only ${lowStockQty} left`);
+    if (totalUnitsSold > 0) parts.push(`${totalUnitsSold} sold`);
     if (parts.length > 0) {
       metaLine.textContent = parts.join(' · ');
       metaLine.style.display = '';
@@ -206,7 +240,11 @@ function buildCard(product) {
     }
   }
 
-  if (!hasVariants) updateMetaLine(product.stockQuantity, product.unitsSold);
+  if (hasVariants) {
+    renderMetaLine(null); // show aggregate sold count right away, no variant picked yet
+  } else {
+    renderMetaLine(isLowStock ? product.stockQuantity : null);
+  }
 
   const footer = document.createElement('div');
   footer.className = 'product-footer';
@@ -303,13 +341,16 @@ function buildCard(product) {
       refreshAddToCartButton();
 
       if (chosen) {
-        updateMetaLine(chosen.stockQuantity, chosen.unitsSold);
+        const tracked = chosen.stockQuantity !== null && chosen.stockQuantity !== undefined;
+        const soldOutNow = tracked && chosen.stockQuantity <= 0;
+        const lowNow = tracked && !soldOutNow && chosen.stockQuantity <= 5;
+        renderMetaLine(lowNow ? chosen.stockQuantity : null);
         if (chosen.image) {
           const imgIndex = allImages.indexOf(chosen.image);
           if (imgIndex >= 0) carousel.goTo(imgIndex);
         }
       } else {
-        metaLine.style.display = 'none';
+        renderMetaLine(null);
       }
     });
 
@@ -432,5 +473,6 @@ async function loadProductsAndRender() {
   renderStorefront();
 }
 
+buildLightbox();
 buildCategoryFilters();
 loadProductsAndRender();

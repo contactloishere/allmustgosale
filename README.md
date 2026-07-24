@@ -157,3 +157,12 @@ In Supabase → Table Editor → `product_variants` → Insert row:
       site later has these pre-filled, so repeat customers don't retype
       everything. Doesn't carry across devices (that would need the login/
       OAuth feature discussed earlier) — just saves typing on the same phone/browser
+
+## Round 13 updates
+- [x] Fixed: variant products now show the total "X sold" count (summed
+      across all variants) right away, not just after picking one — matches
+      how non-variant products already behaved
+- [x] Replaced "tap photo opens full-res in a new tab" with a proper
+      fullscreen swipeable lightbox: tap any photo, it opens large with the
+      same dot indicators, swipe through the rest without closing and
+      reopening — close via the × or tapping outside the photo
