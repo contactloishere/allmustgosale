@@ -141,3 +141,19 @@ In Supabase → Table Editor → `product_variants` → Insert row:
 - `image_url`: that variant's own Cloudinary photo
 - `stock_quantity`: leave blank to not track stock for that specific variant
 - `display_order`: optional, lower numbers show first
+
+## Round 11 updates
+- [x] Cart now persists through a page refresh (saved locally in the browser,
+      no login required) — this solves the "refreshed and lost my cart" issue
+      without needing OAuth/accounts, which is a separate, bigger feature for
+      a different problem (returning customers skipping re-entering info)
+- [x] Cart drawer now shows a clear "Items subtotal (N items): ₱X" line right
+      after the item list, before the checkout form starts, plus each line
+      item now shows its own "₱X each · Subtotal: ₱Y" for larger multi-item carts
+
+## Round 12 updates
+- [x] Name, address, contact number, preferred platform, and handle/number
+      are now remembered locally (same trick as the cart) — returning to the
+      site later has these pre-filled, so repeat customers don't retype
+      everything. Doesn't carry across devices (that would need the login/
+      OAuth feature discussed earlier) — just saves typing on the same phone/browser

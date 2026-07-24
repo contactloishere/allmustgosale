@@ -4,6 +4,66 @@
 // so the whole flow is testable end-to-end.
 
 const cart = {}; // { cartKey: quantity } — cartKey is "productId" or "productId::variantId"
+const CART_STORAGE_KEY = 'allmustgosale_cart_v1';
+
+function persistCart() {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  } catch (err) {
+    console.warn('Could not save cart locally:', err);
+  }
+}
+
+function restoreCart() {
+  try {
+    const saved = localStorage.getItem(CART_STORAGE_KEY);
+    if (!saved) return;
+    const parsed = JSON.parse(saved);
+    Object.keys(parsed).forEach(key => { cart[key] = parsed[key]; });
+  } catch (err) {
+    console.warn('Could not restore saved cart:', err);
+  }
+}
+
+const CHECKOUT_INFO_KEY = 'allmustgosale_checkout_info_v1';
+
+function persistCheckoutInfo(form) {
+  try {
+    const data = new FormData(form);
+    const info = {
+      name: data.get('name') || '',
+      address: data.get('address') || '',
+      contact: data.get('contact') || '',
+      contact_platform: data.get('contact_platform') || '',
+      contact_handle: data.get('contact_handle') || '',
+    };
+    localStorage.setItem(CHECKOUT_INFO_KEY, JSON.stringify(info));
+  } catch (err) {
+    console.warn('Could not save checkout info locally:', err);
+  }
+}
+
+function restoreCheckoutInfo(form) {
+  try {
+    const saved = localStorage.getItem(CHECKOUT_INFO_KEY);
+    if (!saved) return;
+    const info = JSON.parse(saved);
+    if (info.name) form.querySelector('[name="name"]').value = info.name;
+    if (info.address) form.querySelector('[name="address"]').value = info.address;
+    if (info.contact) form.querySelector('[name="contact"]').value = info.contact;
+    if (info.contact_platform) {
+      const platformSelect = form.querySelector('#contact-platform-select');
+      platformSelect.value = info.contact_platform;
+      platformSelect.dispatchEvent(new Event('change'));
+    }
+    if (info.contact_handle) {
+      const handleField = form.querySelector('#contact-handle-input');
+      handleField.value = info.contact_handle;
+    }
+  } catch (err) {
+    console.warn('Could not restore saved checkout info:', err);
+  }
+}
 
 function getProduct(id) {
   return PRODUCTS.find(p => p.id === id);
@@ -42,6 +102,7 @@ function addToCart(productId, variantId) {
   const key = variantId ? `${productId}::${variantId}` : `${productId}`;
   cart[key] = (cart[key] || 0) + 1;
   updateCartBadge();
+  persistCart();
 }
 
 function setQty(cartKey, qty) {
@@ -53,6 +114,7 @@ function setQty(cartKey, qty) {
   updateCartBadge();
   renderCartItems();
   updateShippingAndTotal();
+  persistCart();
 }
 
 function updateCartBadge() {
@@ -79,6 +141,7 @@ function buildCartDrawer() {
     </div>
 
     <div class="cart-items" id="cart-items"></div>
+    <div class="cart-subtotal-preview" id="cart-subtotal-preview"></div>
 
     <form class="checkout-form" id="checkout-form">
       <label>
@@ -190,9 +253,14 @@ function buildCartDrawer() {
 
   function refreshSubmitState() {
     submitButton.disabled = !checkoutForm.checkValidity();
+    persistCheckoutInfo(checkoutForm);
   }
   checkoutForm.addEventListener('input', refreshSubmitState);
   checkoutForm.addEventListener('change', refreshSubmitState);
+  refreshSubmitState();
+
+  // Fill in anything saved from a previous visit (name, address, contact, etc.)
+  restoreCheckoutInfo(checkoutForm);
   refreshSubmitState();
 
   document.getElementById('payment-method-select').addEventListener('change', e => {
@@ -318,6 +386,7 @@ function buildCartDrawer() {
 
     alert('Order submitted! Lois will confirm your payment and reach out to you in your platform of choice. Please keep your DMs open for messages.');
     for (const id in cart) delete cart[id];
+    persistCart();
     updateCartBadge();
     e.target.reset();
     refreshSubmitState();
@@ -329,10 +398,12 @@ function buildCartDrawer() {
 
 function renderCartItems() {
   const container = document.getElementById('cart-items');
+  const preview = document.getElementById('cart-subtotal-preview');
   const keys = Object.keys(cart);
 
   if (keys.length === 0) {
     container.innerHTML = `<p class="cart-empty">Your cart is empty.</p>`;
+    preview.textContent = '';
     return;
   }
 
@@ -343,13 +414,14 @@ function renderCartItems() {
     const qty = cart[key];
     const displayName = variant ? `${product.name} — ${variant.name}` : product.name;
     const img = (variant && variant.image) ? variant.image : product.images[0];
+    const lineSubtotal = product.price * qty;
 
     return `
       <div class="cart-item" data-key="${key}">
         <img src="${img}" alt="${displayName}">
         <div class="cart-item__info">
           <p class="cart-item__name">${displayName}</p>
-          <p class="cart-item__price">₱${product.price.toLocaleString('en-PH')}</p>
+          <p class="cart-item__price">₱${product.price.toLocaleString('en-PH')} each · Subtotal: ₱${lineSubtotal.toLocaleString('en-PH')}</p>
         </div>
         <div class="qty-control">
           <button type="button" class="qty-btn" data-action="dec">−</button>
@@ -365,6 +437,9 @@ function renderCartItems() {
     el.querySelector('[data-action="inc"]').addEventListener('click', () => setQty(key, cart[key] + 1));
     el.querySelector('[data-action="dec"]').addEventListener('click', () => setQty(key, cart[key] - 1));
   });
+
+  const itemCount = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+  preview.textContent = `Items subtotal (${itemCount} item${itemCount === 1 ? '' : 's'}): ₱${cartSubtotal().toLocaleString('en-PH')}`;
 }
 
 function updateShippingAndTotal() {
@@ -415,5 +490,7 @@ function buildFloatingCartButton() {
   document.body.appendChild(btn);
 }
 
+restoreCart();
 buildCartDrawer();
 buildFloatingCartButton();
+updateCartBadge();

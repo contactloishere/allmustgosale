@@ -590,3 +590,14 @@ body {
   outline: 2px solid var(--moss);
   outline-offset: 1px;
 }
+
+.cart-subtotal-preview {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+  padding: 8px 0 14px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
